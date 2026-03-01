@@ -263,7 +263,7 @@ class ImagePreprocessing:
 if __name__ == "__main__":
     preprocessor = ImagePreprocessing()
 
-    image_path = "../images/test.jpeg"
+    image_path = "../images/test.png"
     preprocessor.load_image(image_path)
 
     print("Original image info:")
