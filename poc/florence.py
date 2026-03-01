@@ -13,7 +13,7 @@ from transformers import AutoModelForCausalLM, AutoProcessor
 
 
 class FlorenceOCR:
-    def __init__(self, model_name: str = "microsoft/Florence-2-large"):
+    def __init__(self, model_name: str = "microsoft/Florence-2-base"):
         """Initialize Florence-2 model for OCR"""
         print(f"Loading {model_name}...")
 
@@ -49,8 +49,9 @@ class FlorenceOCR:
             input_ids=inputs["input_ids"],
             pixel_values=inputs["pixel_values"],
             max_new_tokens=1024,
-            num_beams=3,
+            num_beams=1,
             do_sample=False,
+            early_stopping=False,
         )
 
         result = self.processor.batch_decode(generated_ids, skip_special_tokens=False)[
@@ -84,7 +85,7 @@ class FlorenceOCR:
                 if part and not part.startswith("<") and len(part) > 1:
                     text_parts.append(part)
 
-            return " ".join(text_parts) if text_parts else result
+            return "\n".join(text_parts) if text_parts else result
 
         if task in [
             "<CAPTION>",
@@ -106,7 +107,7 @@ if __name__ == "__main__":
 
     ocr = FlorenceOCR()
 
-    test_image = "../images/Tigrou.jpeg"
+    test_image = "output/05_ocr_ready.png"
 
     if not Path(test_image).exists():
         print(f"Error: {test_image} not found")
@@ -115,8 +116,7 @@ if __name__ == "__main__":
 
     print(f"\n=== Extracting text from: {test_image} ===\n")
 
-    print("--- Method 1: Basic OCR ---")
-    result_basic = ocr.extract_text(test_image, task="<OCR>")
+    result_basic = ocr.extract_text(test_image, task="<OCR_WITH_REGION>")
     print("Extracted text:")
     print(result_basic["parsed"])
     print()
