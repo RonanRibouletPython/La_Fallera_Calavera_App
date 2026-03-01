@@ -4,8 +4,22 @@ FROM mcr.microsoft.com/devcontainers/python:3.13-bookworm
 # System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \        
     tree \                
-    lsof \                
+    lsof \  
+    # Install Tesseract for POC
+    tesseract-ocr \
+    tesseract-ocr-cat \
+    tesseract-ocr-eng \
+    tesseract-ocr-spa \  
+    # Libs needed for OpenCV
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \            
     && rm -rf /var/lib/apt/lists/*
+
+
 
 # Package manager
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
