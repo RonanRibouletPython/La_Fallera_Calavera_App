@@ -1,7 +1,7 @@
 [project]
 name = "workspace"
 version = "0.1.0"
-description = "Add your description here"
+description = "OCR extraction for La Fallera Calavera card game"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -9,4 +9,8 @@ dependencies = [
     "opencv-python>=4.13.0.92",
     "pillow>=12.1.1",
     "pytesseract>=0.3.13",
+    "transformers==4.38.2",
+    "torch>=2.5.0",
+    "timm>=0.9.0",
+    "einops>=0.8.0",
 ]

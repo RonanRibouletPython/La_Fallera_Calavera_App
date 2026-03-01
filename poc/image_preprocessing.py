@@ -179,7 +179,7 @@ class ImagePreprocessing:
         new_height = int(factor * height)
 
         if factor < 1:
-            im_resized = pil_image.resize((new_width, new_height), Image.LANCZOS)
+            im_resized = pil_image.resize((new_width, new_height), Image.LANCZOS)  # pyright: ignore[reportAttributeAccessIssue]
             print(f"Resized from {width}x{height} to {new_width}x{new_height}")
         else:
             im_resized = pil_image
@@ -214,7 +214,7 @@ class ImagePreprocessing:
         new_size = (int(factor * width), int(factor * height))
 
         if factor < 1:
-            im_resized = pil_image.resize(new_size, Image.LANCZOS)
+            im_resized = pil_image.resize(new_size, Image.LANCZOS)  # pyright: ignore[reportAttributeAccessIssue]
         else:
             im_resized = pil_image
 
@@ -263,7 +263,7 @@ class ImagePreprocessing:
 if __name__ == "__main__":
     preprocessor = ImagePreprocessing()
 
-    image_path = "../images/ausias.png"
+    image_path = "../images/test.jpeg"
     preprocessor.load_image(image_path)
 
     print("Original image info:")
@@ -287,5 +287,5 @@ if __name__ == "__main__":
         target_dpi=300, max_width=1024, output_path="output/05_ocr_ready.png"
     )
 
-    print("\n✓ All preprocessing steps completed!")
-    print(f"✓ OCR-ready image: {ocr_ready}")
+    print("\nAll preprocessing steps completed!")
+    print(f"OCR-ready image: {ocr_ready}")
