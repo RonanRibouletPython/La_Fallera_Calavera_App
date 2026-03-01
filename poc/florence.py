@@ -4,16 +4,22 @@ from pathlib import Path
 from typing import Any, Dict
 
 # Import our custom patch to bypass flash_attn requirement
-import hf_bypass  # type: ignore
+try:
+    from . import hf_bypass  # Works when imported from main.py
+except ImportError:
+    import hf_bypass
 import torch
 from PIL import Image
 
 # Now it is safe to import Hugging Face transformers
-from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers import (
+    AutoModelForCausalLM,  # type: ignore
+    AutoProcessor,  # type: ignore
+)
 
 
 class FlorenceOCR:
-    def __init__(self, model_name: str = "microsoft/Florence-2-base"):
+    def __init__(self, model_name: str = "microsoft/Florence-2-large"):
         """Initialize Florence-2 model for OCR"""
         print(f"Loading {model_name}...")
 
@@ -75,23 +81,78 @@ class FlorenceOCR:
             return result
 
         if task == "<OCR_WITH_REGION>":
-            # Extract text by removing location coordinates
-            # Format is: <loc_X><loc_Y>...text...<loc_X><loc_Y>...
-            text_parts = []
-            # Split by location tags and keep only the text parts
-            parts = re.split(r"<loc_\d+>", result)
-            for part in parts:
-                part = part.strip()
-                if part and not part.startswith("<") and len(part) > 1:
-                    text_parts.append(part)
+            # 1. Regex to extract text and location tags
+            # Matches: "Some Text" followed by "<loc_123><loc_456>..."
+            pattern = r"([^<]+)((?:<loc_\d+>)+)"
+            matches = re.finditer(pattern, result)
 
-            return "\n".join(text_parts) if text_parts else result
+            card_data = {
+                "card_number": [],
+                "title": [],
+                "body": [],
+                "raw_text": [],  # Keep everything just in case
+            }
 
-        if task in [
-            "<CAPTION>",
-            "<DETAILED_CAPTION>",
-            "<MORE_DETAILED_CAPTION>",
-        ]:
+            for match in matches:
+                text = match.group(1).strip()
+                loc_string = match.group(2)
+
+                if not text:
+                    continue
+
+                # Extract coordinates
+                # Format: <loc_x1><loc_y1><loc_x2><loc_y2>...
+                coords = [int(n) for n in re.findall(r"<loc_(\d+)>", loc_string)]
+
+                if len(coords) < 4:
+                    continue
+
+                # Calculate center points of the text box
+                # X coordinates are at indices 0, 2, 4...
+                # Y coordinates are at indices 1, 3, 5...
+                x_coords = coords[0::2]
+                y_coords = coords[1::2]
+
+                x_center = sum(x_coords) / len(x_coords)
+                y_center = sum(y_coords) / len(y_coords)
+
+                # --- SPATIAL LOGIC FOR LA FALLERA CALAVERA ---
+                # Florence coordinates are 0-1000
+
+                # 1. HEADER ZONE (Top 35% of the card)
+                if y_center < 350:
+                    # Split Left vs Right
+                    if x_center < 500:
+                        card_data["card_number"].append(text)
+                    else:
+                        card_data["title"].append(text)
+
+                # 2. BODY ZONE (Bottom 40% of the card)
+                elif y_center > 600:
+                    card_data["body"].append(text)
+
+                # 3. ART ZONE (Middle) - Usually noise or artist name
+                # We typically ignore this for gameplay rules, or add to body if unsure
+                else:
+                    # Optional: Add to body if it looks like rule text
+                    pass
+
+            # Join lists into clean strings
+            structured_result = {
+                "id": " ".join(card_data["card_number"]),
+                "title": " ".join(card_data["title"]),
+                "description": " ".join(card_data["body"]),
+                "full_text": result,  # The raw string for debugging
+            }
+
+            # Post-processing cleanup
+            # Sometimes 'n1' is read as 'n 1', fix that
+            structured_result["id"] = structured_result["id"].replace(" ", "")
+
+            return structured_result
+
+        # JSON parsing for Caption tasks
+        if task in ["<CAPTION>", "<DETAILED_CAPTION>", "<MORE_DETAILED_CAPTION>"]:
             try:
                 json_match = re.search(r"\{.*\}", result, re.DOTALL)
                 if json_match:
